@@ -1,0 +1,26 @@
+{
+  "name": "remark-attribute",
+  "version": "1.0.0",
+  "description": "remark plugin to support attributes (`{#id .class key=value}`)",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "lint": "eslint",
+    "test": "tsc --project tsconfig.test.json && node --test \"test/**/*.test.ts\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "mdast-util-attribute": "^1.0.0",
+    "micromark-extension-attribute": "^1.0.0"
+  },
+  "devDependencies": {
+    "rehype-stringify": "^10.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "unified": "^11.0.5"
+  }
+}

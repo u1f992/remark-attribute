@@ -1,0 +1,27 @@
+{
+  "name": "micromark-extension-attribute",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "lint": "eslint",
+    "test": "tsc --project tsconfig.test.json && node --test \"test/**/*.test.ts\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "micromark-factory-space": "^2.0.1",
+    "micromark-factory-whitespace": "^2.0.1",
+    "micromark-util-character": "^2.1.1",
+    "micromark-util-symbol": "^2.0.1",
+    "micromark-util-types": "^2.0.2",
+    "parse-entities": "^4.0.2"
+  },
+  "devDependencies": {
+    "micromark": "^4.0.2"
+  }
+}
