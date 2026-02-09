@@ -8,7 +8,7 @@ import { ok as assert } from "devlop";
 import { factorySpace } from "micromark-factory-space";
 import { markdownLineEnding } from "micromark-util-character";
 import { codes, types } from "micromark-util-symbol";
-import { factoryAttributes } from "./factory-attributes.ts";
+import { factoryAttributes } from "./factory-attributes.js";
 
 export const attributeFlow: Construct = { tokenize: tokenizeAttributeFlow };
 

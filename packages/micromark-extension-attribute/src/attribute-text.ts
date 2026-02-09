@@ -6,7 +6,7 @@ import type {
 } from "micromark-util-types";
 import { ok as assert } from "devlop";
 import { codes } from "micromark-util-symbol";
-import { factoryAttributes } from "./factory-attributes.ts";
+import { factoryAttributes } from "./factory-attributes.js";
 
 export const attributeText: Construct = { tokenize: tokenizeAttributeText };
 

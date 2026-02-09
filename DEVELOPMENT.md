@@ -44,3 +44,32 @@ packages/<name>/
 
 `tsconfig.test.json` は手動で作成する。`tsconfig.json` を継承するが、
 `include: ["src"]` も継承されるため `include: ["src", "test"]` で上書きする必要がある。
+
+## アップストリーム追従ファイル
+
+### `micromark-extension-attribute/src/factory-attributes.js`
+
+このファイルは `micromark-extension-directive` の `dev/lib/factory-attributes.js` を
+**無改変でコピー**したものである。`{...}` 属性構文のパーサ（状態機械）はこのプロジェクトの
+中核ロジックだが、`micromark-extension-directive` と完全に共有されるコードのため、
+upstream の変更を容易に取り込めるよう原本のまま保持する。
+
+#### 設計判断
+
+- ファイル形式は upstream に合わせて **JavaScript（JSDoc 型注釈付き）** のまま使用する
+- `tsconfig.json` に `allowJs: true` を設定し、TypeScript コンパイラが
+  JSDoc から `.d.ts` を生成する
+- `.ts` ファイルからは `import ... from "./factory-attributes.js"` でインポートする
+- ESLint（`eslint.config.js` の `ignores`）と Prettier（`.prettierignore`）の
+  対象外としており、フォーマッタによる差分が発生しない
+
+#### upstream 更新の手順
+
+1. upstream リポジトリから最新の `dev/lib/factory-attributes.js` を取得する
+2. 差分を確認する:
+   ```bash
+   diff micromark-extension-directive/dev/lib/factory-attributes.js \
+        remark-attribute/packages/micromark-extension-attribute/src/factory-attributes.js
+   ```
+3. ファイルを上書きコピーする
+4. `npm run build && npm test` で動作確認する

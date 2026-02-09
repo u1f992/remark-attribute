@@ -8,6 +8,7 @@ import tseslint from 'typescript-eslint';
  * @see https://typescript-eslint.io/getting-started
  */
 const eslintConfig = defineConfig(
+  { ignores: ["packages/micromark-extension-attribute/src/factory-attributes.js"] },
   eslint.configs.recommended,
   tseslint.configs.recommended,
 );
