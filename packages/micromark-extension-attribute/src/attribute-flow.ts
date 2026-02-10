@@ -4,7 +4,6 @@ import type {
   TokenizeContext,
   Tokenizer,
 } from "micromark-util-types";
-import { ok as assert } from "devlop";
 import { factorySpace } from "micromark-factory-space";
 import { markdownLineEnding } from "micromark-util-character";
 import { codes, types } from "micromark-util-symbol";
@@ -21,7 +20,7 @@ function tokenizeAttributeFlow(
   return start;
 
   function start(code: Parameters<State>[0]): ReturnType<State> {
-    assert(code === codes.leftCurlyBrace, "expected `{`");
+    if (code !== codes.leftCurlyBrace) throw new Error("expected `{`");
     return factoryAttributes(
       effects,
       afterAttributes,

@@ -4,7 +4,6 @@ import type {
   TokenizeContext,
   Tokenizer,
 } from "micromark-util-types";
-import { ok as assert } from "devlop";
 import { codes } from "micromark-util-symbol";
 import { factoryAttributes } from "./factory-attributes.js";
 
@@ -19,7 +18,7 @@ function tokenizeAttributeText(
   return start;
 
   function start(code: Parameters<State>[0]): ReturnType<State> {
-    assert(code === codes.leftCurlyBrace, "expected `{`");
+    if (code !== codes.leftCurlyBrace) throw new Error("expected `{`");
     return factoryAttributes(
       effects,
       ok,

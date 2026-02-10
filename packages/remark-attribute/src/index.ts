@@ -1,1 +1,1 @@
-export {default as remarkAttribute} from './lib.ts'
+export { default as remarkAttribute } from "./lib.ts";

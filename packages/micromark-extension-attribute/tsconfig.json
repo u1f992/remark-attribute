@@ -15,12 +15,14 @@
     // "types": ["node"],
     // and npm install -D @types/node
 
-    // Allow JS
+    // Interoperability with Node.js Type Stripping
+    "rewriteRelativeImportExtensions": true,
+
+    // factory-attributes.js is copied verbatim from upstream; include it in compilation so tsc generates .d.ts from JSDoc.
     "allowJs": true,
 
     // Other Outputs
     "sourceMap": true,
-    "rewriteRelativeImportExtensions": true,
     "declaration": true,
     "declarationMap": true,
 
@@ -45,5 +47,6 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
   },
+  // error TS6059: File '/.../test/index.test.ts' is not under 'rootDir' '/.../src'. 'rootDir' is expected to contain all source files.
   "include": ["src"]
 }

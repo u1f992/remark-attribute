@@ -1,3 +1,8 @@
+// This file is copied verbatim from micromark/micromark-extension-directive,
+// based on commit f3ad96c51330dd57b6d40cd865cb23fdce29d833.
+//
+// MIT (c) Titus Wormer <https://wooorm.com>
+
 /**
  * @import {Code, Effects, State, TokenType} from 'micromark-util-types'
  */

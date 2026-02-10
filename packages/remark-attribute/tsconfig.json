@@ -15,9 +15,11 @@
     // "types": ["node"],
     // and npm install -D @types/node
 
+    // Interoperability with Node.js Type Stripping
+    "rewriteRelativeImportExtensions": true,
+
     // Other Outputs
     "sourceMap": true,
-    "rewriteRelativeImportExtensions": true,
     "declaration": true,
     "declarationMap": true,
 
@@ -42,5 +44,6 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
   },
+  // error TS6059: File '/.../test/index.test.ts' is not under 'rootDir' '/.../src'. 'rootDir' is expected to contain all source files.
   "include": ["src"]
 }

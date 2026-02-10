@@ -5,7 +5,6 @@ import type {
   Token,
 } from "mdast-util-from-markdown";
 import type { Nodes, Parent, PhrasingContent, RootContent } from "mdast";
-import { ok as assert } from "devlop";
 import { htmlElementAttributes as htmlElemAttr } from "html-element-attributes";
 import { parseEntities } from "parse-entities";
 import { visitParents } from "unist-util-visit-parents";
@@ -173,8 +172,8 @@ export function attributeFromMarkdown(
   }
 
   function exitAttributeIdValue(this: CompileContext, token: Token): undefined {
-    const list = this.data.attributeList as Array<[string, string]> | undefined;
-    assert(list, "expected `attributeList`");
+    const list = this.data.attributeList;
+    if (!list) throw new Error("expected `attributeList`");
     list.push([
       "id",
       parseEntities(this.sliceSerialize(token), { attribute: true }),
@@ -185,8 +184,8 @@ export function attributeFromMarkdown(
     this: CompileContext,
     token: Token,
   ): undefined {
-    const list = this.data.attributeList as Array<[string, string]> | undefined;
-    assert(list, "expected `attributeList`");
+    const list = this.data.attributeList;
+    if (!list) throw new Error("expected `attributeList`");
     list.push([
       "class",
       parseEntities(this.sliceSerialize(token), { attribute: true }),
@@ -194,41 +193,41 @@ export function attributeFromMarkdown(
   }
 
   function exitAttributeName(this: CompileContext, token: Token): undefined {
-    const list = this.data.attributeList as Array<[string, string]> | undefined;
-    assert(list, "expected `attributeList`");
+    const list = this.data.attributeList;
+    if (!list) throw new Error("expected `attributeList`");
     list.push([this.sliceSerialize(token), ""]);
   }
 
   function exitAttributeValue(this: CompileContext, token: Token): undefined {
-    const list = this.data.attributeList as Array<[string, string]> | undefined;
-    assert(list, "expected `attributeList`");
+    const list = this.data.attributeList;
+    if (!list) throw new Error("expected `attributeList`");
     const last = list[list.length - 1];
-    assert(last, "expected attribute entry");
+    if (!last) throw new Error("expected attribute entry");
     last[1] = parseEntities(this.sliceSerialize(token), {
       attribute: true,
     });
   }
 
   function exitInlineAttributes(this: CompileContext, token: Token): undefined {
-    const list = this.data.attributeList as Array<[string, string]> | undefined;
-    assert(list, "expected `attributeList`");
+    const list = this.data.attributeList;
+    if (!list) throw new Error("expected `attributeList`");
     const cleaned = cleanAttributes(list);
     this.data.attributeList = undefined;
     this.resume();
     const node = this.stack[this.stack.length - 1] as any;
-    assert(node.type === "attributeInline");
+    if (node.type !== "attributeInline") throw new Error("expected `attributeInline`");
     node.attributes = cleaned;
     this.exit(token);
   }
 
   function exitBlockAttributes(this: CompileContext, token: Token): undefined {
-    const list = this.data.attributeList as Array<[string, string]> | undefined;
-    assert(list, "expected `attributeList`");
+    const list = this.data.attributeList;
+    if (!list) throw new Error("expected `attributeList`");
     const cleaned = cleanAttributes(list);
     this.data.attributeList = undefined;
     this.resume();
     const node = this.stack[this.stack.length - 1] as any;
-    assert(node.type === "attributeBlock");
+    if (node.type !== "attributeBlock") throw new Error("expected `attributeBlock`");
     node.attributes = cleaned;
     this.exit(token);
   }
