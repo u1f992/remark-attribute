@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { fromMarkdown } from "mdast-util-from-markdown";
+import type { Root, RootContent } from "mdast";
 import { attribute } from "micromark-extension-attribute";
 import { attributeFromMarkdown } from "../src/index.ts";
 import type { Options } from "../src/index.ts";
@@ -18,10 +19,15 @@ function parse(input: string, options?: Options) {
 /**
  * Get the first child of given type from the tree.
  */
-function first(tree: any, type: string) {
+function first<T extends RootContent["type"]>(
+  tree: Root,
+  type: T,
+): Extract<RootContent, { type: T }> {
   for (const child of tree.children) {
-    if (child.type === type) return child;
+    if (child.type === type)
+      return child as Extract<RootContent, { type: T }>;
   }
+  throw new Error(`expected child of type "${type}"`);
 }
 
 test("mdast-util-attribute (public api)", async function (t) {
@@ -37,8 +43,9 @@ test("mdast-util-attribute (inline)", async function (t) {
     const tree = parse("**bold**{.myclass}");
     const p = first(tree, "paragraph");
     const strong = p.children[0];
+    if (!strong) throw new Error("expected child");
     assert.equal(strong.type, "strong");
-    assert.deepEqual(strong.data.hProperties, { class: "myclass" });
+    assert.deepEqual(strong.data?.hProperties, { class: "myclass" });
     // Attribute node should be removed
     assert.equal(p.children.length, 1);
   });
@@ -47,23 +54,26 @@ test("mdast-util-attribute (inline)", async function (t) {
     const tree = parse("*em*{#myid}");
     const p = first(tree, "paragraph");
     const em = p.children[0];
+    if (!em) throw new Error("expected child");
     assert.equal(em.type, "emphasis");
-    assert.deepEqual(em.data.hProperties, { id: "myid" });
+    assert.deepEqual(em.data?.hProperties, { id: "myid" });
   });
 
   await t.test("should attach {key=value} to inlineCode", async function () {
     const tree = parse('`code`{style="color:red"}');
     const p = first(tree, "paragraph");
     const code = p.children[0];
+    if (!code) throw new Error("expected child");
     assert.equal(code.type, "inlineCode");
-    assert.deepEqual(code.data.hProperties, { style: "color:red" });
+    assert.deepEqual(code.data?.hProperties, { style: "color:red" });
   });
 
   await t.test("should attach multiple attributes", async function () {
     const tree = parse('**bold**{#id .class style="color:red"}');
     const p = first(tree, "paragraph");
     const strong = p.children[0];
-    assert.deepEqual(strong.data.hProperties, {
+    if (!strong) throw new Error("expected child");
+    assert.deepEqual(strong.data?.hProperties, {
       id: "id",
       class: "class",
       style: "color:red",
@@ -74,16 +84,18 @@ test("mdast-util-attribute (inline)", async function (t) {
     const tree = parse("![alt](img.jpg){height=50}", { scope: "permissive" });
     const p = first(tree, "paragraph");
     const img = p.children[0];
+    if (!img) throw new Error("expected child");
     assert.equal(img.type, "image");
-    assert.deepEqual(img.data.hProperties, { height: "50" });
+    assert.deepEqual(img.data?.hProperties, { height: "50" });
   });
 
   await t.test("should attach to link", async function () {
     const tree = parse('[link](url){rel="external"}', { scope: "permissive" });
     const p = first(tree, "paragraph");
     const link = p.children[0];
+    if (!link) throw new Error("expected child");
     assert.equal(link.type, "link");
-    assert.deepEqual(link.data.hProperties, { rel: "external" });
+    assert.deepEqual(link.data?.hProperties, { rel: "external" });
   });
 
   await t.test(
@@ -92,12 +104,13 @@ test("mdast-util-attribute (inline)", async function (t) {
       const tree = parse("*a*{.x} and **b**{.y}");
       const p = first(tree, "paragraph");
       const em = p.children[0];
+      if (!em) throw new Error("expected child");
       assert.equal(em.type, "emphasis");
-      assert.deepEqual(em.data.hProperties, { class: "x" });
+      assert.deepEqual(em.data?.hProperties, { class: "x" });
       // Find the strong
-      const strong = p.children.find((c: any) => c.type === "strong");
-      assert.ok(strong);
-      assert.deepEqual(strong.data.hProperties, { class: "y" });
+      const strong = p.children.find((c) => c.type === "strong");
+      if (!strong) throw new Error("expected strong");
+      assert.deepEqual(strong.data?.hProperties, { class: "y" });
     },
   );
 
@@ -105,8 +118,9 @@ test("mdast-util-attribute (inline)", async function (t) {
     const tree = parse("{.class} some text");
     const p = first(tree, "paragraph");
     // The first child should be text (fallback)
-    assert.equal(p.children[0].type, "text");
-    assert.ok(p.children[0].value.includes(".class"));
+    const child = p.children[0];
+    if (!child || child.type !== "text") throw new Error("expected text child");
+    assert.ok(child.value.includes(".class"));
   });
 });
 
@@ -114,17 +128,17 @@ test("mdast-util-attribute (heading inline)", async function (t) {
   await t.test("should attach inline attr to heading", async function () {
     const tree = parse("# Title {.class}");
     const heading = first(tree, "heading");
-    assert.deepEqual(heading.data.hProperties, { class: "class" });
+    assert.deepEqual(heading.data?.hProperties, { class: "class" });
     // Text should be trimmed
     const text = heading.children[0];
-    assert.equal(text.type, "text");
+    if (!text || text.type !== "text") throw new Error("expected text child");
     assert.equal(text.value, "Title");
   });
 
   await t.test("should attach inline attr without space", async function () {
     const tree = parse("# Title{.class}");
     const heading = first(tree, "heading");
-    assert.deepEqual(heading.data.hProperties, { class: "class" });
+    assert.deepEqual(heading.data?.hProperties, { class: "class" });
   });
 
   await t.test(
@@ -144,28 +158,28 @@ test("mdast-util-attribute (block)", async function (t) {
     async function () {
       const tree = parse("# Title\n{.class}");
       const heading = first(tree, "heading");
-      assert.deepEqual(heading.data.hProperties, { class: "class" });
+      assert.deepEqual(heading.data?.hProperties, { class: "class" });
       // Block attribute node should be removed
-      assert.ok(!tree.children.find((c: any) => c.type === "attributeBlock"));
+      assert.ok(!tree.children.find((c) => c.type === "attributeBlock"));
     },
   );
 
   await t.test("should attach {#id} block to heading", async function () {
     const tree = parse("# Title\n{#myid}");
     const heading = first(tree, "heading");
-    assert.deepEqual(heading.data.hProperties, { id: "myid" });
+    assert.deepEqual(heading.data?.hProperties, { id: "myid" });
   });
 
   await t.test("should attach block attr to setext heading", async function () {
     const tree = parse("Title\n=====\n{.class}");
     const heading = first(tree, "heading");
-    assert.deepEqual(heading.data.hProperties, { class: "class" });
+    assert.deepEqual(heading.data?.hProperties, { class: "class" });
   });
 
   await t.test("should attach data-attr to heading", async function () {
     const tree = parse('# Title\n{data-id="title"}');
     const heading = first(tree, "heading");
-    assert.deepEqual(heading.data.hProperties, { "data-id": "title" });
+    assert.deepEqual(heading.data?.hProperties, { "data-id": "title" });
   });
 });
 
@@ -176,7 +190,7 @@ test("mdast-util-attribute (fenced code meta)", async function (t) {
     });
     const code = first(tree, "code");
     assert.equal(code.lang, "lang");
-    assert.deepEqual(code.data.hProperties, { info: "string" });
+    assert.deepEqual(code.data?.hProperties, { info: "string" });
   });
 
   await t.test("should parse meta with braces", async function () {
@@ -184,7 +198,7 @@ test("mdast-util-attribute (fenced code meta)", async function (t) {
       scope: "permissive",
     });
     const code = first(tree, "code");
-    assert.deepEqual(code.data.hProperties, { info: "string" });
+    assert.deepEqual(code.data?.hProperties, { info: "string" });
   });
 });
 
@@ -195,8 +209,9 @@ test("mdast-util-attribute (scope filtering)", async function (t) {
       const tree = parse('**bold**{style="color:red" onclick="evil()"}');
       const p = first(tree, "paragraph");
       const strong = p.children[0];
+      if (!strong) throw new Error("expected child");
       // style is global, onclick is dangerous → filtered out
-      assert.deepEqual(strong.data.hProperties, { style: "color:red" });
+      assert.deepEqual(strong.data?.hProperties, { style: "color:red" });
     },
   );
 
@@ -208,7 +223,8 @@ test("mdast-util-attribute (scope filtering)", async function (t) {
       });
       const p = first(tree, "paragraph");
       const strong = p.children[0];
-      assert.deepEqual(strong.data.hProperties, {
+      if (!strong) throw new Error("expected child");
+      assert.deepEqual(strong.data?.hProperties, {
         style: "color:red",
         custom: "yes",
       });
@@ -219,20 +235,23 @@ test("mdast-util-attribute (scope filtering)", async function (t) {
     const tree = parse('**bold**{aria-label="test"}');
     const p = first(tree, "paragraph");
     const strong = p.children[0];
-    assert.deepEqual(strong.data.hProperties, { "aria-label": "test" });
+    if (!strong) throw new Error("expected child");
+    assert.deepEqual(strong.data?.hProperties, { "aria-label": "test" });
   });
 
   await t.test("should allow data-* in global scope", async function () {
     const tree = parse('**bold**{data-id="123"}');
     const p = first(tree, "paragraph");
     const strong = p.children[0];
-    assert.deepEqual(strong.data.hProperties, { "data-id": "123" });
+    if (!strong) throw new Error("expected child");
+    assert.deepEqual(strong.data?.hProperties, { "data-id": "123" });
   });
 
   await t.test("should block DOM event handlers by default", async function () {
     const tree = parse('**bold**{onclick="evil()"}', { scope: "permissive" });
     const p = first(tree, "paragraph");
     const strong = p.children[0];
+    if (!strong) throw new Error("expected child");
     // permissive but allowDangerousDOMEventHandlers=false → all filtered out
     assert.equal(strong.data, undefined);
   });
@@ -244,6 +263,7 @@ test("mdast-util-attribute (scope filtering)", async function (t) {
     });
     const p = first(tree, "paragraph");
     const strong = p.children[0];
-    assert.equal(strong.data.hProperties.onclick, "fn()");
+    if (!strong || strong.type !== "strong") throw new Error("expected strong");
+    assert.equal(strong.data?.hProperties?.onclick, "fn()");
   });
 });

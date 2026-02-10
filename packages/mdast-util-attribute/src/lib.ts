@@ -1,17 +1,54 @@
 import type {
   CompileContext,
   Extension as FromMarkdownExtension,
-  Handle as FromMarkdownHandle,
   Token,
 } from "mdast-util-from-markdown";
-import type { Nodes, Parent, PhrasingContent, RootContent } from "mdast";
+import type {
+  Heading,
+  Nodes,
+  Paragraph,
+  Parent,
+  PhrasingContent,
+  Root,
+  RootContent,
+  Text,
+} from "mdast";
+import type { Position } from "unist";
 import { htmlElementAttributes as htmlElemAttr } from "html-element-attributes";
 import { parseEntities } from "parse-entities";
 import { visitParents } from "unist-util-visit-parents";
+// Load Data.hProperties augmentation from mdast-util-to-hast
+import type {} from "mdast-util-to-hast";
 
 declare module "mdast-util-from-markdown" {
   interface CompileData {
     attributeList?: Array<[string, string]> | undefined;
+  }
+}
+
+interface AttributeInline {
+  type: "attributeInline";
+  attributes: Record<string, string>;
+  children: [];
+  data?: Record<string, unknown> | undefined;
+  position?: Position | undefined;
+}
+
+interface AttributeBlock {
+  type: "attributeBlock";
+  attributes: Record<string, string>;
+  children: [];
+  data?: Record<string, unknown> | undefined;
+  position?: Position | undefined;
+}
+
+declare module "mdast" {
+  interface RootContentMap {
+    attributeBlock: AttributeBlock;
+    attributeInline: AttributeInline;
+  }
+  interface PhrasingContentMap {
+    attributeInline: AttributeInline;
   }
 }
 
@@ -156,7 +193,7 @@ export function attributeFromMarkdown(
   ): undefined {
     this.data.attributeList = [];
     this.enter(
-      { type: "attributeInline", attributes: {}, children: [] } as any,
+      { type: "attributeInline", attributes: {}, children: [] },
       token,
     );
     this.buffer();
@@ -164,10 +201,7 @@ export function attributeFromMarkdown(
 
   function enterBlockAttributes(this: CompileContext, token: Token): undefined {
     this.data.attributeList = [];
-    this.enter(
-      { type: "attributeBlock", attributes: {}, children: [] } as any,
-      token,
-    );
+    this.enter({ type: "attributeBlock", attributes: {}, children: [] }, token);
     this.buffer();
   }
 
@@ -214,8 +248,9 @@ export function attributeFromMarkdown(
     const cleaned = cleanAttributes(list);
     this.data.attributeList = undefined;
     this.resume();
-    const node = this.stack[this.stack.length - 1] as any;
-    if (node.type !== "attributeInline") throw new Error("expected `attributeInline`");
+    const node = this.stack[this.stack.length - 1];
+    if (!node || node.type !== "attributeInline")
+      throw new Error("expected `attributeInline`");
     node.attributes = cleaned;
     this.exit(token);
   }
@@ -226,8 +261,9 @@ export function attributeFromMarkdown(
     const cleaned = cleanAttributes(list);
     this.data.attributeList = undefined;
     this.resume();
-    const node = this.stack[this.stack.length - 1] as any;
-    if (node.type !== "attributeBlock") throw new Error("expected `attributeBlock`");
+    const node = this.stack[this.stack.length - 1];
+    if (!node || node.type !== "attributeBlock")
+      throw new Error("expected `attributeBlock`");
     node.attributes = cleaned;
     this.exit(token);
   }
@@ -235,7 +271,7 @@ export function attributeFromMarkdown(
   /**
    * Transform the tree to attach attribute nodes to their targets.
    */
-  function transformAttributes(tree: import("mdast").Root): void {
+  function transformAttributes(tree: Root): void {
     // Handle fenced code meta first
     visitParents(tree, "code", function (node) {
       if (node.meta) {
@@ -282,21 +318,18 @@ function cleanAttributes(
  * Handle block-level attribute nodes.
  * Block attributes appear as direct children of root, after headings etc.
  */
-function handleBlockAttributes(
-  tree: import("mdast").Root,
-  config: Config,
-): void {
+function handleBlockAttributes(tree: Root, config: Config): void {
   let index = tree.children.length - 1;
 
   while (index >= 0) {
-    const node = tree.children[index] as any;
+    const node = tree.children[index];
 
-    if (node.type === "attributeBlock") {
+    if (node && node.type === "attributeBlock") {
       // Look for preceding sibling to attach to
       let targetIndex = index - 1;
       while (
         targetIndex >= 0 &&
-        (tree.children[targetIndex] as any).type === "attributeBlock"
+        tree.children[targetIndex]?.type === "attributeBlock"
       ) {
         targetIndex--;
       }
@@ -334,11 +367,8 @@ function isBlockTarget(node: RootContent): boolean {
 /**
  * Handle inline attribute nodes within paragraphs and headings.
  */
-function handleInlineAttributes(
-  tree: import("mdast").Root,
-  config: Config,
-): void {
-  visitParents(tree, function (node, _ancestors) {
+function handleInlineAttributes(tree: Root, config: Config): void {
+  visitParents(tree, function (node) {
     if (!("children" in node)) return;
     const parent = node as Parent;
 
@@ -358,16 +388,16 @@ function handleInlineAttributes(
     let index = parent.children.length - 1;
 
     while (index >= 0) {
-      const child = parent.children[index] as any;
+      const child = parent.children[index];
 
-      if (child.type === "attributeInline") {
+      if (child && child.type === "attributeInline") {
         // Case 2: Inside a heading — attach to heading itself
         if (
           parent.type === "heading" &&
           config.enableAtxHeaderInline !== false
         ) {
           const handled = handleHeadingInlineAttribute(
-            parent as import("mdast").Heading,
+            parent as Heading,
             index,
             config,
           );
@@ -401,19 +431,19 @@ function handleInlineAttributes(
  * The attribute applies to the heading itself.
  */
 function handleHeadingInlineAttribute(
-  heading: import("mdast").Heading,
+  heading: Heading,
   attrIndex: number,
   config: Config,
 ): boolean {
-  const attr = heading.children[attrIndex] as any;
-  if (attr.type !== "attributeInline") return false;
+  const attr = heading.children[attrIndex];
+  if (!attr || attr.type !== "attributeInline") return false;
 
   // Only handle if it's the last meaningful child
   // Check that nothing follows except whitespace text
   let isLast = true;
   for (let i = attrIndex + 1; i < heading.children.length; i++) {
-    const sibling = heading.children[i] as any;
-    if (sibling.type !== "text" || sibling.value.trim() !== "") {
+    const sibling = heading.children[i];
+    if (!sibling || sibling.type !== "text" || sibling.value.trim() !== "") {
       isLast = false;
       break;
     }
@@ -424,8 +454,8 @@ function handleHeadingInlineAttribute(
   // Don't apply if heading ONLY contains the attribute (e.g. `# {.class}`)
   let hasContentBefore = false;
   for (let i = 0; i < attrIndex; i++) {
-    const sibling = heading.children[i] as any;
-    if (sibling.type !== "text" || sibling.value.trim() !== "") {
+    const sibling = heading.children[i];
+    if (!sibling || sibling.type !== "text" || sibling.value.trim() !== "") {
       hasContentBefore = true;
       break;
     }
@@ -440,7 +470,7 @@ function handleHeadingInlineAttribute(
   heading.children.splice(attrIndex, heading.children.length - attrIndex);
 
   // Trim trailing whitespace from the last remaining text child
-  const lastChild = heading.children[heading.children.length - 1] as any;
+  const lastChild = heading.children[heading.children.length - 1];
   if (lastChild && lastChild.type === "text") {
     lastChild.value = lastChild.value.replace(/\s+$/, "");
   }
@@ -486,18 +516,20 @@ function assignAttributes(
   if (Object.keys(filtered).length === 0) return;
 
   const data = node.data || (node.data = {});
-  const existing = ((data as any).hProperties as Record<string, unknown>) || {};
+  const existing: Record<string, string> =
+    (data.hProperties as Record<string, string> | undefined) ?? {};
 
   // Merge: class values get concatenated, others overwritten
-  for (const key of Object.keys(filtered)) {
-    if (key === "class" && existing.class) {
-      existing.class = existing.class + " " + filtered.class;
+  for (const [key, value] of Object.entries(filtered)) {
+    const prev = existing[key];
+    if (key === "class" && prev) {
+      existing[key] = prev + " " + value;
     } else {
-      existing[key] = filtered[key];
+      existing[key] = value;
     }
   }
 
-  (data as any).hProperties = existing;
+  data.hProperties = existing;
 }
 
 /**
@@ -699,7 +731,7 @@ function serializeAttributes(attributes: Record<string, string>): string {
 /**
  * Create a fallback paragraph node from an unattached block attribute.
  */
-function createFallbackParagraph(node: any): import("mdast").Paragraph {
+function createFallbackParagraph(node: AttributeBlock): Paragraph {
   return {
     type: "paragraph",
     children: [{ type: "text", value: serializeAttributes(node.attributes) }],
@@ -710,7 +742,7 @@ function createFallbackParagraph(node: any): import("mdast").Paragraph {
 /**
  * Create a fallback text node from an unattached inline attribute.
  */
-function createFallbackText(node: any): import("mdast").Text {
+function createFallbackText(node: AttributeInline): Text {
   return {
     type: "text",
     value: serializeAttributes(node.attributes),
