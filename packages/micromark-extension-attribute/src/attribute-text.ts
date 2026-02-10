@@ -6,6 +6,7 @@ import type {
 } from "micromark-util-types";
 import { codes } from "micromark-util-symbol";
 import { factoryAttributes } from "./factory-attributes.js";
+import { inlineTokenTypes as t } from "./token-types.ts";
 
 export const attributeText: Construct = { tokenize: tokenizeAttributeText };
 
@@ -18,22 +19,22 @@ function tokenizeAttributeText(
   return start;
 
   function start(code: Parameters<State>[0]): ReturnType<State> {
-    if (code !== codes.leftCurlyBrace) throw new Error("expected `{`");
+    if (code !== codes.leftCurlyBrace) return nok(code);
     return factoryAttributes(
       effects,
       ok,
       nok,
-      "inlineAttributes",
-      "inlineAttributesMarker",
-      "inlineAttribute",
-      "inlineAttributeId",
-      "inlineAttributeClass",
-      "inlineAttributeName",
-      "inlineAttributeInitializerMarker",
-      "inlineAttributeValueLiteral",
-      "inlineAttributeValue",
-      "inlineAttributeValueMarker",
-      "inlineAttributeValueData",
+      t.attributes,
+      t.attributesMarker,
+      t.attribute,
+      t.attributeId,
+      t.attributeClass,
+      t.attributeName,
+      t.attributeInitializerMarker,
+      t.attributeValueLiteral,
+      t.attributeValue,
+      t.attributeValueMarker,
+      t.attributeValueData,
       true,
     )(code);
   }
