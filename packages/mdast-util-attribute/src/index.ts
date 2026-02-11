@@ -477,7 +477,7 @@ const isGlobal: ScopeFn = (p) =>
  * Ported from old remark-attr.
  */
 function filteredAttributes(
-  prop: Record<string, string>,
+  attrs: Record<string, string>,
   { scope, extend, allowDangerousDOMEventHandlers }: Config,
   htmlTag: string,
 ): Record<string, string> {
@@ -524,7 +524,7 @@ function filteredAttributes(
   }
 
   return Object.fromEntries(
-    Object.entries(prop)
+    Object.entries(attrs)
       .map(([p, v]): [string, string] =>
         ["key", "class", "id"].includes(p) ? [p, v] : [p, v ?? ""],
       )
@@ -537,11 +537,11 @@ function filteredAttributes(
  */
 function assignAttributes(
   node: mdast.Nodes,
-  attributes: Record<string, string>,
+  attrs: Record<string, string>,
   config: Config,
 ): void {
   const filtered = Object.entries(
-    filteredAttributes(attributes, config, convTypeTag.get(node.type) ?? "*"),
+    filteredAttributes(attrs, config, convTypeTag.get(node.type) ?? "*"),
   );
   // No filtered attributes: keep node.data/node.data.hProperties as-is
   if (filtered.length === 0) {
