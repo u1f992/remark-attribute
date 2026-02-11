@@ -24,22 +24,21 @@ function first<T extends RootContent["type"]>(
   type: T,
 ): Extract<RootContent, { type: T }> {
   for (const child of tree.children) {
-    if (child.type === type)
-      return child as Extract<RootContent, { type: T }>;
+    if (child.type === type) return child as Extract<RootContent, { type: T }>;
   }
   throw new Error(`expected child of type "${type}"`);
 }
 
-test("mdast-util-attribute (public api)", async function (t) {
-  await t.test("should export attributeFromMarkdown", async function () {
+test("mdast-util-attribute (public api)", async (t) => {
+  await t.test("should export attributeFromMarkdown", async () => {
     assert.deepEqual(Object.keys(await import("../src/index.ts")).sort(), [
       "attributeFromMarkdown",
     ]);
   });
 });
 
-test("mdast-util-attribute (inline)", async function (t) {
-  await t.test("should attach {.class} to strong", async function () {
+test("mdast-util-attribute (inline)", async (t) => {
+  await t.test("should attach {.class} to strong", async () => {
     const tree = parse("**bold**{.myclass}");
     const p = first(tree, "paragraph");
     const strong = p.children[0];
@@ -50,7 +49,7 @@ test("mdast-util-attribute (inline)", async function (t) {
     assert.equal(p.children.length, 1);
   });
 
-  await t.test("should attach {#id} to emphasis", async function () {
+  await t.test("should attach {#id} to emphasis", async () => {
     const tree = parse("*em*{#myid}");
     const p = first(tree, "paragraph");
     const em = p.children[0];
@@ -59,7 +58,7 @@ test("mdast-util-attribute (inline)", async function (t) {
     assert.deepEqual(em.data?.hProperties, { id: "myid" });
   });
 
-  await t.test("should attach {key=value} to inlineCode", async function () {
+  await t.test("should attach {key=value} to inlineCode", async () => {
     const tree = parse('`code`{style="color:red"}');
     const p = first(tree, "paragraph");
     const code = p.children[0];
@@ -68,7 +67,7 @@ test("mdast-util-attribute (inline)", async function (t) {
     assert.deepEqual(code.data?.hProperties, { style: "color:red" });
   });
 
-  await t.test("should attach multiple attributes", async function () {
+  await t.test("should attach multiple attributes", async () => {
     const tree = parse('**bold**{#id .class style="color:red"}');
     const p = first(tree, "paragraph");
     const strong = p.children[0];
@@ -80,7 +79,7 @@ test("mdast-util-attribute (inline)", async function (t) {
     });
   });
 
-  await t.test("should attach to image", async function () {
+  await t.test("should attach to image", async () => {
     const tree = parse("![alt](img.jpg){height=50}", { scope: "permissive" });
     const p = first(tree, "paragraph");
     const img = p.children[0];
@@ -89,7 +88,7 @@ test("mdast-util-attribute (inline)", async function (t) {
     assert.deepEqual(img.data?.hProperties, { height: "50" });
   });
 
-  await t.test("should attach to link", async function () {
+  await t.test("should attach to link", async () => {
     const tree = parse('[link](url){rel="external"}', { scope: "permissive" });
     const p = first(tree, "paragraph");
     const link = p.children[0];
@@ -98,23 +97,20 @@ test("mdast-util-attribute (inline)", async function (t) {
     assert.deepEqual(link.data?.hProperties, { rel: "external" });
   });
 
-  await t.test(
-    "should handle multiple inline attrs in paragraph",
-    async function () {
-      const tree = parse("*a*{.x} and **b**{.y}");
-      const p = first(tree, "paragraph");
-      const em = p.children[0];
-      if (!em) throw new Error("expected child");
-      assert.equal(em.type, "emphasis");
-      assert.deepEqual(em.data?.hProperties, { class: "x" });
-      // Find the strong
-      const strong = p.children.find((c) => c.type === "strong");
-      if (!strong) throw new Error("expected strong");
-      assert.deepEqual(strong.data?.hProperties, { class: "y" });
-    },
-  );
+  await t.test("should handle multiple inline attrs in paragraph", async () => {
+    const tree = parse("*a*{.x} and **b**{.y}");
+    const p = first(tree, "paragraph");
+    const em = p.children[0];
+    if (!em) throw new Error("expected child");
+    assert.equal(em.type, "emphasis");
+    assert.deepEqual(em.data?.hProperties, { class: "x" });
+    // Find the strong
+    const strong = p.children.find((c) => c.type === "strong");
+    if (!strong) throw new Error("expected strong");
+    assert.deepEqual(strong.data?.hProperties, { class: "y" });
+  });
 
-  await t.test("should fallback unattached inline to text", async function () {
+  await t.test("should fallback unattached inline to text", async () => {
     const tree = parse("{.class} some text");
     const p = first(tree, "paragraph");
     // The first child should be text (fallback)
@@ -124,8 +120,8 @@ test("mdast-util-attribute (inline)", async function (t) {
   });
 });
 
-test("mdast-util-attribute (heading inline)", async function (t) {
-  await t.test("should attach inline attr to heading", async function () {
+test("mdast-util-attribute (heading inline)", async (t) => {
+  await t.test("should attach inline attr to heading", async () => {
     const tree = parse("# Title {.class}");
     const heading = first(tree, "heading");
     assert.deepEqual(heading.data?.hProperties, { class: "class" });
@@ -135,56 +131,50 @@ test("mdast-util-attribute (heading inline)", async function (t) {
     assert.equal(text.value, "Title");
   });
 
-  await t.test("should attach inline attr without space", async function () {
+  await t.test("should attach inline attr without space", async () => {
     const tree = parse("# Title{.class}");
     const heading = first(tree, "heading");
     assert.deepEqual(heading.data?.hProperties, { class: "class" });
   });
 
-  await t.test(
-    "should not apply when heading only has attr",
-    async function () {
-      const tree = parse("# {.class}");
-      const heading = first(tree, "heading");
-      // Should NOT have hProperties on the heading (fallback to text)
-      assert.equal(heading.data, undefined);
-    },
-  );
+  await t.test("should not apply when heading only has attr", async () => {
+    const tree = parse("# {.class}");
+    const heading = first(tree, "heading");
+    // Should NOT have hProperties on the heading (fallback to text)
+    assert.equal(heading.data, undefined);
+  });
 });
 
-test("mdast-util-attribute (block)", async function (t) {
-  await t.test(
-    "should attach block attr to preceding heading",
-    async function () {
-      const tree = parse("# Title\n{.class}");
-      const heading = first(tree, "heading");
-      assert.deepEqual(heading.data?.hProperties, { class: "class" });
-      // Block attribute node should be removed
-      assert.ok(!tree.children.find((c) => c.type === "attributeBlock"));
-    },
-  );
+test("mdast-util-attribute (block)", async (t) => {
+  await t.test("should attach block attr to preceding heading", async () => {
+    const tree = parse("# Title\n{.class}");
+    const heading = first(tree, "heading");
+    assert.deepEqual(heading.data?.hProperties, { class: "class" });
+    // Block attribute node should be removed
+    assert.ok(!tree.children.find((c) => c.type === "attributeBlock"));
+  });
 
-  await t.test("should attach {#id} block to heading", async function () {
+  await t.test("should attach {#id} block to heading", async () => {
     const tree = parse("# Title\n{#myid}");
     const heading = first(tree, "heading");
     assert.deepEqual(heading.data?.hProperties, { id: "myid" });
   });
 
-  await t.test("should attach block attr to setext heading", async function () {
+  await t.test("should attach block attr to setext heading", async () => {
     const tree = parse("Title\n=====\n{.class}");
     const heading = first(tree, "heading");
     assert.deepEqual(heading.data?.hProperties, { class: "class" });
   });
 
-  await t.test("should attach data-attr to heading", async function () {
+  await t.test("should attach data-attr to heading", async () => {
     const tree = parse('# Title\n{data-id="title"}');
     const heading = first(tree, "heading");
     assert.deepEqual(heading.data?.hProperties, { "data-id": "title" });
   });
 });
 
-test("mdast-util-attribute (fenced code meta)", async function (t) {
-  await t.test("should keep bare meta as node.meta", async function () {
+test("mdast-util-attribute (fenced code meta)", async (t) => {
+  await t.test("should keep bare meta as node.meta", async () => {
     const tree = parse("~~~lang info=string\ncode\n~~~", {
       scope: "permissive",
     });
@@ -194,7 +184,7 @@ test("mdast-util-attribute (fenced code meta)", async function (t) {
     assert.equal(code.data?.hProperties, undefined);
   });
 
-  await t.test("should parse braced attributes", async function () {
+  await t.test("should parse braced attributes", async () => {
     const tree = parse("~~~lang {info=string}\ncode\n~~~", {
       scope: "permissive",
     });
@@ -204,50 +194,41 @@ test("mdast-util-attribute (fenced code meta)", async function (t) {
     assert.deepEqual(code.data?.hProperties, { info: "string" });
   });
 
-  await t.test(
-    "should keep meta and parse trailing attributes",
-    async function () {
-      const tree = parse("~~~js title=app.js {#code-id}\ncode\n~~~", {
-        scope: "permissive",
-      });
-      const code = first(tree, "code");
-      assert.equal(code.lang, "js");
-      assert.equal(code.meta, "title=app.js");
-      assert.deepEqual(code.data?.hProperties, { id: "code-id" });
-    },
-  );
+  await t.test("should keep meta and parse trailing attributes", async () => {
+    const tree = parse("~~~js title=app.js {#code-id}\ncode\n~~~", {
+      scope: "permissive",
+    });
+    const code = first(tree, "code");
+    assert.equal(code.lang, "js");
+    assert.equal(code.meta, "title=app.js");
+    assert.deepEqual(code.data?.hProperties, { id: "code-id" });
+  });
 });
 
-test("mdast-util-attribute (scope filtering)", async function (t) {
-  await t.test(
-    "should filter with default scope (extended)",
-    async function () {
-      const tree = parse('**bold**{style="color:red" onclick="evil()"}');
-      const p = first(tree, "paragraph");
-      const strong = p.children[0];
-      if (!strong) throw new Error("expected child");
-      // style is global, onclick is dangerous → filtered out
-      assert.deepEqual(strong.data?.hProperties, { style: "color:red" });
-    },
-  );
+test("mdast-util-attribute (scope filtering)", async (t) => {
+  await t.test("should filter with default scope (extended)", async () => {
+    const tree = parse('**bold**{style="color:red" onclick="evil()"}');
+    const p = first(tree, "paragraph");
+    const strong = p.children[0];
+    if (!strong) throw new Error("expected child");
+    // style is global, onclick is dangerous → filtered out
+    assert.deepEqual(strong.data?.hProperties, { style: "color:red" });
+  });
 
-  await t.test(
-    "should allow everything in permissive scope",
-    async function () {
-      const tree = parse('**bold**{style="color:red" custom="yes"}', {
-        scope: "permissive",
-      });
-      const p = first(tree, "paragraph");
-      const strong = p.children[0];
-      if (!strong) throw new Error("expected child");
-      assert.deepEqual(strong.data?.hProperties, {
-        style: "color:red",
-        custom: "yes",
-      });
-    },
-  );
+  await t.test("should allow everything in permissive scope", async () => {
+    const tree = parse('**bold**{style="color:red" custom="yes"}', {
+      scope: "permissive",
+    });
+    const p = first(tree, "paragraph");
+    const strong = p.children[0];
+    if (!strong) throw new Error("expected child");
+    assert.deepEqual(strong.data?.hProperties, {
+      style: "color:red",
+      custom: "yes",
+    });
+  });
 
-  await t.test("should allow aria-* in global scope", async function () {
+  await t.test("should allow aria-* in global scope", async () => {
     const tree = parse('**bold**{aria-label="test"}');
     const p = first(tree, "paragraph");
     const strong = p.children[0];
@@ -255,7 +236,7 @@ test("mdast-util-attribute (scope filtering)", async function (t) {
     assert.deepEqual(strong.data?.hProperties, { "aria-label": "test" });
   });
 
-  await t.test("should allow data-* in global scope", async function () {
+  await t.test("should allow data-* in global scope", async () => {
     const tree = parse('**bold**{data-id="123"}');
     const p = first(tree, "paragraph");
     const strong = p.children[0];
@@ -263,7 +244,7 @@ test("mdast-util-attribute (scope filtering)", async function (t) {
     assert.deepEqual(strong.data?.hProperties, { "data-id": "123" });
   });
 
-  await t.test("should block DOM event handlers by default", async function () {
+  await t.test("should block DOM event handlers by default", async () => {
     const tree = parse('**bold**{onclick="evil()"}', { scope: "permissive" });
     const p = first(tree, "paragraph");
     const strong = p.children[0];
@@ -272,7 +253,7 @@ test("mdast-util-attribute (scope filtering)", async function (t) {
     assert.equal(strong.data, undefined);
   });
 
-  await t.test("should allow DOM handlers when opted in", async function () {
+  await t.test("should allow DOM handlers when opted in", async () => {
     const tree = parse('**bold**{onclick="fn()"}', {
       scope: "permissive",
       allowDangerousDOMEventHandlers: true,
