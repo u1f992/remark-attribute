@@ -114,6 +114,56 @@ test("micromark-extension-attribute (inline)", async (t) => {
   });
 });
 
+test("micromark-extension-attribute (fenced code meta)", async (t) => {
+  await t.test("should parse fenced code without attributes", async () => {
+    assert.equal(
+      m("```js\nalert(1)\n```"),
+      "<pre><code class=\"language-js\">alert(1)\n</code></pre>",
+    );
+  });
+
+  await t.test("should parse {.class} in fenced code meta", async () => {
+    assert.equal(
+      m("```js {.highlight}\nalert(1)\n```"),
+      "<pre><code class=\"language-js\">alert(1)\n</code></pre>",
+    );
+  });
+
+  await t.test("should preserve bare meta as-is", async () => {
+    assert.equal(
+      m("```js title=app.js\nalert(1)\n```"),
+      "<pre><code class=\"language-js\">alert(1)\n</code></pre>",
+    );
+  });
+
+  await t.test(
+    "should parse attributes after bare meta",
+    async () => {
+      assert.equal(
+        m("```js title=app.js {#code-id}\nalert(1)\n```"),
+        "<pre><code class=\"language-js\">alert(1)\n</code></pre>",
+      );
+    },
+  );
+
+  await t.test("should parse tilde fenced code with attributes", async () => {
+    assert.equal(
+      m("~~~js {.highlight}\nalert(1)\n~~~"),
+      "<pre><code class=\"language-js\">alert(1)\n</code></pre>",
+    );
+  });
+
+  await t.test(
+    "should treat invalid attributes as plain meta",
+    async () => {
+      assert.equal(
+        m("```js {invalid\nalert(1)\n```"),
+        "<pre><code class=\"language-js\">alert(1)\n</code></pre>",
+      );
+    },
+  );
+});
+
 test("micromark-extension-attribute (flow/block)", async (t) => {
   await t.test("should parse {.class} on its own line", async () => {
     assert.equal(m("# Title\n{.class}"), "<h1>Title</h1>\n");

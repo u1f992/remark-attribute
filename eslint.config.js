@@ -12,6 +12,7 @@ const eslintConfig = defineConfig(
     ignores: [
       "**/dist/",
       "packages/micromark-extension-attribute/src/factory-attributes.js",
+      "packages/micromark-extension-attribute/src/code-fenced.js",
     ],
   },
   eslint.configs.recommended,

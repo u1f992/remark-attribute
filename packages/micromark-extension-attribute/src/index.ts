@@ -3,6 +3,8 @@ import { markdownLineEnding } from "micromark-util-character";
 import { codes, types as tokenTypes } from "micromark-util-symbol";
 import type * as micromark from "micromark-util-types";
 
+import { codeFenced } from "./code-fenced.js";
+import { codeMetaTokenTypes } from "./code-meta-attribute.ts";
 import { factoryAttributes } from "./factory-attributes.js";
 
 const inlineTokenTypes = {
@@ -22,35 +24,6 @@ const inlineTokenTypes = {
   attributeValueMarker: "inlineAttributeValueMarker",
   attributeValueData: "inlineAttributeValueData",
 } as const;
-
-const blockTokenTypes = {
-  attributes: "blockAttributes",
-  attributesMarker: "blockAttributesMarker",
-  attribute: "blockAttribute",
-  attributeId: "blockAttributeId",
-  attributeIdMarker: "blockAttributeIdMarker",
-  attributeIdValue: "blockAttributeIdValue",
-  attributeClass: "blockAttributeClass",
-  attributeClassMarker: "blockAttributeClassMarker",
-  attributeClassValue: "blockAttributeClassValue",
-  attributeName: "blockAttributeName",
-  attributeInitializerMarker: "blockAttributeInitializerMarker",
-  attributeValueLiteral: "blockAttributeValueLiteral",
-  attributeValue: "blockAttributeValue",
-  attributeValueMarker: "blockAttributeValueMarker",
-  attributeValueData: "blockAttributeValueData",
-} as const;
-
-type TokenSelfMap<T extends Record<string, string>> = {
-  [K in T[keyof T]]: K;
-};
-
-declare module "micromark-util-types" {
-  interface TokenTypeMap
-    extends
-      TokenSelfMap<typeof inlineTokenTypes>,
-      TokenSelfMap<typeof blockTokenTypes> {}
-}
 
 const attributeText: micromark.Construct = {
   tokenize: (effects, ok, nok) => (code) =>
@@ -74,6 +47,24 @@ const attributeText: micromark.Construct = {
           true,
         ))(code),
 };
+
+const blockTokenTypes = {
+  attributes: "blockAttributes",
+  attributesMarker: "blockAttributesMarker",
+  attribute: "blockAttribute",
+  attributeId: "blockAttributeId",
+  attributeIdMarker: "blockAttributeIdMarker",
+  attributeIdValue: "blockAttributeIdValue",
+  attributeClass: "blockAttributeClass",
+  attributeClassMarker: "blockAttributeClassMarker",
+  attributeClassValue: "blockAttributeClassValue",
+  attributeName: "blockAttributeName",
+  attributeInitializerMarker: "blockAttributeInitializerMarker",
+  attributeValueLiteral: "blockAttributeValueLiteral",
+  attributeValue: "blockAttributeValue",
+  attributeValueMarker: "blockAttributeValueMarker",
+  attributeValueData: "blockAttributeValueData",
+} as const;
 
 const attributeFlow: micromark.Construct = {
   tokenize: (effects, ok, nok) => (code) =>
@@ -105,7 +96,24 @@ const attributeFlow: micromark.Construct = {
         ))(code),
 };
 
+type TokenSelfMap<T extends Record<string, string>> = {
+  [K in T[keyof T]]: K;
+};
+
+declare module "micromark-util-types" {
+  interface TokenTypeMap
+    extends
+      TokenSelfMap<typeof inlineTokenTypes>,
+      TokenSelfMap<typeof blockTokenTypes>,
+      TokenSelfMap<typeof codeMetaTokenTypes> {}
+}
+
 export const attribute = (): micromark.Extension => ({
   text: { [codes.leftCurlyBrace]: attributeText },
-  flow: { [codes.leftCurlyBrace]: attributeFlow },
+  flow: {
+    [codes.leftCurlyBrace]: attributeFlow,
+    [codes.graveAccent]: codeFenced,
+    [codes.tilde]: codeFenced,
+  },
+  disable: { null: ["codeFenced"] },
 });

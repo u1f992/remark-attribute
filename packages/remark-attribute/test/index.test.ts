@@ -163,12 +163,12 @@ test('remark-attribute (emphasis and strong)', async function (t) {
 
 test('remark-attribute (fenced code)', async function (t) {
   await t.test(
-    'should parse fenced code meta as attributes',
+    'should keep bare meta as-is (not parsed as attributes)',
     async function () {
       const md = '~~~lang info=string\nThis is an awesome code\n\n~~~\n'
       const result = render(md)
       assert.ok(result.includes('class="language-lang"'))
-      assert.ok(result.includes('info="string"'))
+      assert.ok(!result.includes('info="string"'))
     }
   )
 

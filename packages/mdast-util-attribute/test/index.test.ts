@@ -184,22 +184,38 @@ test("mdast-util-attribute (block)", async function (t) {
 });
 
 test("mdast-util-attribute (fenced code meta)", async function (t) {
-  await t.test("should parse meta as attributes", async function () {
+  await t.test("should keep bare meta as node.meta", async function () {
     const tree = parse("~~~lang info=string\ncode\n~~~", {
       scope: "permissive",
     });
     const code = first(tree, "code");
     assert.equal(code.lang, "lang");
-    assert.deepEqual(code.data?.hProperties, { info: "string" });
+    assert.equal(code.meta, "info=string");
+    assert.equal(code.data?.hProperties, undefined);
   });
 
-  await t.test("should parse meta with braces", async function () {
+  await t.test("should parse braced attributes", async function () {
     const tree = parse("~~~lang {info=string}\ncode\n~~~", {
       scope: "permissive",
     });
     const code = first(tree, "code");
+    assert.equal(code.lang, "lang");
+    assert.equal(code.meta, null);
     assert.deepEqual(code.data?.hProperties, { info: "string" });
   });
+
+  await t.test(
+    "should keep meta and parse trailing attributes",
+    async function () {
+      const tree = parse("~~~js title=app.js {#code-id}\ncode\n~~~", {
+        scope: "permissive",
+      });
+      const code = first(tree, "code");
+      assert.equal(code.lang, "js");
+      assert.equal(code.meta, "title=app.js");
+      assert.deepEqual(code.data?.hProperties, { id: "code-id" });
+    },
+  );
 });
 
 test("mdast-util-attribute (scope filtering)", async function (t) {

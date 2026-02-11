@@ -33,6 +33,8 @@ declare module "mdast" {
   }
 }
 
+const codeMetaAttributes = new WeakMap<mdast.Nodes, Record<string, string>>();
+
 export interface Options {
   allowDangerousDOMEventHandlers?: boolean;
   extend?: Record<string, string[]>;
@@ -132,17 +134,39 @@ const exitAttributes = (type: (AttributeInline | AttributeBlock)["type"]) =>
     this.exit(token);
   };
 
+function enterCodeMetaAttributes(this: fromMarkdown.CompileContext) {
+  this.data.attributeList = [];
+}
+
+function exitCodeMetaAttributes(this: fromMarkdown.CompileContext) {
+  const list = this.data.attributeList;
+  if (!list) {
+    return;
+  }
+  this.data.attributeList = undefined;
+  const node = this.stack.at(-1);
+  if (node && node.type === "code") {
+    codeMetaAttributes.set(node, cleanAttributes(list));
+  }
+}
+
+function exitCodeFencedFenceMeta(this: fromMarkdown.CompileContext) {
+  const value = this.resume();
+  const node = this.stack.at(-1);
+  if (node && node.type === "code") {
+    node.meta = value.trimEnd() || null;
+  }
+}
+
 /**
  * Transform the tree to attach attribute nodes to their targets.
  */
 const transformAttributes = (config: Config) => (tree: mdast.Root) => {
-  // Handle fenced code meta first
+  // Handle fenced code meta attributes (tokenized by micromark)
   visitParents(tree, "code", (node) => {
-    if (!node.meta) {
-      return;
-    }
-    const attributes = parseMeta(node.meta);
-    if (attributes && Object.keys(attributes).length > 0) {
+    const attributes = codeMetaAttributes.get(node);
+    if (attributes) {
+      codeMetaAttributes.delete(node);
       assignAttributes(node, attributes, config);
     }
   });
@@ -172,6 +196,7 @@ export function attributeFromMarkdown(
     enter: {
       inlineAttributes: enterAttributes("attributeInline"),
       blockAttributes: enterAttributes("attributeBlock"),
+      codeMetaAttributes: enterCodeMetaAttributes,
     },
     exit: {
       inlineAttributeIdValue: exitAttributeIdValue,
@@ -185,6 +210,13 @@ export function attributeFromMarkdown(
       blockAttributeName: exitAttributeName,
       blockAttributeValue: exitAttributeValue,
       blockAttributes: exitAttributes("attributeBlock"),
+
+      codeMetaAttributeIdValue: exitAttributeIdValue,
+      codeMetaAttributeClassValue: exitAttributeClassValue,
+      codeMetaAttributeName: exitAttributeName,
+      codeMetaAttributeValue: exitAttributeValue,
+      codeMetaAttributes: exitCodeMetaAttributes,
+      codeFencedFenceMeta: exitCodeFencedFenceMeta,
     },
     transforms: [transformAttributes(config)],
   };
@@ -554,95 +586,4 @@ function assignAttributes(
       key === "class" && props[key] ? props[key] + " " + value : value;
     return props;
   }, data.hProperties ?? {});
-}
-
-/**
- * Parse fenced code meta string into attributes.
- * Supports both `info=string` and `{info=string}` forms.
- */
-function parseMeta(meta: string): Record<string, string> {
-  const result: Record<string, string> = {};
-
-  // Strip outer braces if present
-  let str = meta.trim();
-  if (str.startsWith("{") && str.endsWith("}")) {
-    str = str.slice(1, -1).trim();
-  }
-
-  // Simple key=value parser
-  let i = 0;
-  while (i < str.length) {
-    // Skip whitespace
-    while (i < str.length && /\s/.test(str.charAt(i))) i++;
-    if (i >= str.length) break;
-
-    // Handle #id shortcut
-    if (str.charAt(i) === "#") {
-      i++;
-      let value = "";
-      while (i < str.length && !/[\s}]/.test(str.charAt(i))) {
-        value += str.charAt(i);
-        i++;
-      }
-
-      if (value) result.id = value;
-      continue;
-    }
-
-    // Handle .class shortcut
-    if (str.charAt(i) === ".") {
-      i++;
-      let value = "";
-      while (i < str.length && !/[\s.#}]/.test(str.charAt(i))) {
-        value += str.charAt(i);
-        i++;
-      }
-
-      if (value) {
-        result.class = result.class ? result.class + " " + value : value;
-      }
-
-      continue;
-    }
-
-    // Read key
-    let key = "";
-    while (i < str.length && !/[\s=}]/.test(str.charAt(i))) {
-      key += str.charAt(i);
-      i++;
-    }
-
-    if (!key) {
-      i++;
-      continue;
-    }
-
-    // Check for =
-    if (i < str.length && str.charAt(i) === "=") {
-      i++;
-      let value = "";
-
-      if (i < str.length && (str.charAt(i) === '"' || str.charAt(i) === "'")) {
-        const quote = str.charAt(i);
-        i++;
-        while (i < str.length && str.charAt(i) !== quote) {
-          value += str.charAt(i);
-          i++;
-        }
-
-        if (i < str.length) i++; // skip closing quote
-      } else {
-        while (i < str.length && !/[\s}]/.test(str.charAt(i))) {
-          value += str.charAt(i);
-          i++;
-        }
-      }
-
-      result[key] = value;
-    } else {
-      result[key] = "";
-    }
-  }
-
-  return result;
 }
